@@ -4,7 +4,7 @@
     "registry": "http://npm.idecisiongames.com/"
   },
   "description": "Express.js with plugged in ShareDB",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "main": "index.js",
   "dependencies": {
     "async": "^1.5.0",
