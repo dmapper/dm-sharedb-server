@@ -181,7 +181,7 @@ function miscMiddleware (backend) {
     let auth = model.at('auths.' + req.session.userId)
     auth.fetch(() => {
       // TODO: implement setting 'timestamps.lastactivity' through redis
-      if (req.method === 'GET' && !req.xhr) {
+      if (req.method === 'GET' && !req.xhr && auth.get()) {
         auth.set('timestamps.lastactivity', Date.now())
       }
       next()
