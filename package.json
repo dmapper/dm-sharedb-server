@@ -1,7 +1,7 @@
 {
   "name": "dm-sharedb-server",
   "publishConfig": {
-    "registry": "http://npm.idecisiongames.com/"
+    "registry": "https://registry.npmjs.org/"
   },
   "description": "Express.js with plugged in ShareDB",
   "version": "0.1.4",
