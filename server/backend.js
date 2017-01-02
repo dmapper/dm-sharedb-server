@@ -31,7 +31,7 @@ module.exports = (options) => {
 
   let backend = (() => {
     // For horizontal scaling, in production, redis is required.
-    if (conf.get('REDIS_URL')) {
+    if (conf.get('REDIS_URL') && !conf.get('NO_REDIS')) {
       let redisClient = redis.connect()
       let redisObserver = redis.connect()
 
