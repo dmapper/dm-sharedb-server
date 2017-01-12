@@ -34,6 +34,7 @@
     "racer-highway": "*",
     "sharedb": "*",
     "sharedb-redis-pubsub": "*",
+    "sharedb-wsbus-pubsub": "*",
     "sharedb-mongo": "*",
     "nconf": "*",
     "react": "*",
