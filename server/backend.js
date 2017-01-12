@@ -66,7 +66,7 @@ module.exports = (options) => {
       })
 
     // redis alternative
-    } if (conf.get('WSBUS_URL') && !conf.get('NO_WSBUS')) {
+    } else if (conf.get('WSBUS_URL') && !conf.get('NO_WSBUS')) {
       let pubsub = wsbusPubSub(conf.get('WSBUS_URL'))
 
       return racer.createBackend({
