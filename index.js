@@ -1,13 +1,13 @@
+// Initialize nconf with proper config
+require('./nconf')
+
 const _ = require('lodash')
 const path = require('path')
 const EventEmitter = require('events').EventEmitter
 const errorApp = require('./error')
 const server = require('./server')
 
-const ROOT_PATH = process.cwd()
-
-// Initialize nconf with proper config
-require('./nconf')(ROOT_PATH)
+const ROOT_PATH = process.env.ROOT_PATH || process.cwd()
 
 module.exports = (options = {}, cb) => {
   // Set project dir to process.cwd(). In future we may want to allow to
