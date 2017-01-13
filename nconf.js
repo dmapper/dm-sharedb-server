@@ -6,9 +6,9 @@ const _ = require('lodash')
 let app = process.env.APP
 let stage = process.env.STAGE
 
-module.exports = (dirname) => {
-  dirname = dirname || process.cwd()
+initNconf(process.env.ROOT_PATH || process.cwd())
 
+function initNconf (dirname) {
   let addNconfFile = (nconf, filename) => {
     let filePath = path.join(dirname, 'config', filename + '.json')
     if (fs.existsSync(filePath)) {

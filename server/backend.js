@@ -5,6 +5,7 @@ const shareDbAccess = require('sharedb-access')
 const racerSchema = require('racer-schema')
 const shareDbHooks = require('sharedb-hooks')
 const redisPubSub = require('sharedb-redis-pubsub')
+const wsbusPubSub = require('sharedb-wsbus-pubsub')
 const racer = require('racer')
 const redis = require('redis-url')
 const initAdmins = require('./initAdmins')
@@ -31,7 +32,7 @@ module.exports = (options) => {
 
   let backend = (() => {
     // For horizontal scaling, in production, redis is required.
-    if (conf.get('REDIS_URL')) {
+    if (conf.get('REDIS_URL') && !conf.get('NO_REDIS')) {
       let redisClient = redis.connect()
       let redisObserver = redis.connect()
 
@@ -64,6 +65,15 @@ module.exports = (options) => {
         extraDbs: options.extraDbs
       })
 
+    // redis alternative
+    } else if (conf.get('WSBUS_URL') && !conf.get('NO_WSBUS')) {
+      let pubsub = wsbusPubSub(conf.get('WSBUS_URL'))
+
+      return racer.createBackend({
+        db: mongo,
+        pubsub: pubsub,
+        extraDbs: options.extraDbs
+      })
     // For development
     } else {
       return racer.createBackend({
