@@ -16,17 +16,8 @@ module.exports = (options) => {
 
   // ShareDB Setup
   let mongoUrl = conf.get('MONGO_URL')
-  if (/auto_reconnect/.test(mongoUrl)) {
-    if (/\?/.test(mongoUrl)) {
-      mongoUrl += '&'
-    } else {
-      mongoUrl += '?'
-    }
-    mongoUrl += 'auto_reconnect'
-  }
 
   let mongo = shareDbMongo(mongoUrl, {
-    safe: true,
     allowAllQueries: true
   })
 
