@@ -6,7 +6,9 @@ module.exports = (backend) => {
   backend.ADMINS = []
   let model = backend.createModel()
   let adminIds = model.at('service.adminIds')
-  let superadmins = model.query('auths', { 'email': { $in: conf.get('ADMINS') } })
+  let superadmins = model.query('auths', { 'email': {
+    $in: conf.get('ADMINS') || []
+  } })
   model.fetch(adminIds, superadmins, () => {
     async.series([ (cb) => {
       if (adminIds.get() != null) {
