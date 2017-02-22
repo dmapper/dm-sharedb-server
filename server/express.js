@@ -19,6 +19,10 @@ const defaultClientLayout = require('./defaultClientLayout')
 const { match } = require('react-router')
 
 const DEFAULT_SESSION_MAX_AGE = 1000 * 60 * 60 * 24 * 365 * 2 // 2 years
+function getDefaultSessionUpdateInterval (sessionMaxAge) {
+  // maxAge is in ms. Return in s. So it's 1/10nth of maxAge.
+  return Math.floor(sessionMaxAge / 1000 / 10)
+}
 
 // Optional derby-login
 let derbyLogin = null
@@ -31,7 +35,12 @@ module.exports = (backend, appRoutes, error, options, cb) => {
   let MongoStore = connectMongo(expressSession)
   let mongoUrl = conf.get('MONGO_URL')
 
-  let sessionStore = new MongoStore({ url: mongoUrl })
+  let connectMongoOptions = { url: mongoUrl }
+  if (options.sessionMaxAge) {
+    connectMongoOptions.touchAfter = options.sessionUpdateInterval ||
+        getDefaultSessionUpdateInterval(options.sessionMaxAge)
+  }
+  let sessionStore = new MongoStore(connectMongoOptions)
   sessionStore.on('connected', () => {
     let session = expressSession({
       secret: conf.get('SESSION_SECRET'),
