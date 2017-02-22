@@ -18,6 +18,8 @@ const resourceManager = require('./resourceManager')
 const defaultClientLayout = require('./defaultClientLayout')
 const { match } = require('react-router')
 
+const DEFAULT_SESSION_MAX_AGE = 1000 * 60 * 60 * 24 * 365 * 2 // 2 years
+
 // Optional derby-login
 let derbyLogin = null
 try {
@@ -35,7 +37,7 @@ module.exports = (backend, appRoutes, error, options, cb) => {
       secret: conf.get('SESSION_SECRET'),
       store: sessionStore,
       cookie: {
-        maxAge: 1000 * 60 * 60 * 24 * 365 * 2
+        maxAge: options.sessionMaxAge || DEFAULT_SESSION_MAX_AGE
       },
       saveUninitialized: true,
       resave: false
