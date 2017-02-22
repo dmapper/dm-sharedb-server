@@ -49,7 +49,10 @@ module.exports = (backend, appRoutes, error, options, cb) => {
         maxAge: options.sessionMaxAge || DEFAULT_SESSION_MAX_AGE
       },
       saveUninitialized: true,
-      resave: false
+      resave: false,
+      // when sessionMaxAge is set, we want to update cookie expiration time
+      // on each request
+      rolling: !!options.sessionMaxAge
     })
 
     let clientOptions = {
