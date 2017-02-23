@@ -11,7 +11,7 @@ module.exports = (options) => {
   let appRoutes = options.appRoutes
 
   // Init backend and all apps
-  let backend = require('./backend')(options)
+  let {backend} = require('./backend')(options)
 
   // Init error handling route
   let error = options.error(options)

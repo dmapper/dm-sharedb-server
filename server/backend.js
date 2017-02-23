@@ -32,18 +32,20 @@ module.exports = (options) => {
       // Currently only the detection of the first instance of deis.com cluster
       // is supported.
       // TODO: Implement detection of the first instance on kubernetes and azure
-      redisClient.on('connect', () => {
-        let [, , , instance] = (process.env.HOSTNAME || '').split('.')
-        if (instance == null || instance === '1') {
-          redisClient.flushdb((err, didSucceed) => {
-            if (err) {
-              console.log('Redis flushdb err:', err)
-            } else {
-              console.log('Redis flushdb success:', didSucceed)
-            }
-          })
-        }
-      })
+      if (options.flushRedis !== false) {
+        redisClient.on('connect', () => {
+          let [, , , instance] = (process.env.HOSTNAME || '').split('.')
+          if (instance == null || instance === '1') {
+            redisClient.flushdb((err, didSucceed) => {
+              if (err) {
+                console.log('Redis flushdb err:', err)
+              } else {
+                console.log('Redis flushdb success:', didSucceed)
+              }
+            })
+          }
+        })
+      }
 
       let pubsub = redisPubSub({
         client: redisClient,
@@ -108,7 +110,7 @@ module.exports = (options) => {
 
   initAdmins(backend)
 
-  return backend
+  return {backend, mongo, redis}
 }
 
 function pathQueryMongo (request, next) {
