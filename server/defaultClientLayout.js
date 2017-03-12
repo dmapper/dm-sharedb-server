@@ -12,7 +12,7 @@ module.exports = (p) => `
     <script>window.IS_REACT = true</script>
   </head>
   <body>
-    <div id='app'>Loading</div>
+    <div id='app'></div>
     <script type='application/json' id='bundle'>${JSON.stringify(p.modelBundle)}</script>
     <script defer src='${p.jsBundle}'></script>    
   </body>
