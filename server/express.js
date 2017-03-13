@@ -46,7 +46,8 @@ module.exports = (backend, appRoutes, error, options, cb) => {
       secret: conf.get('SESSION_SECRET'),
       store: sessionStore,
       cookie: {
-        maxAge: options.sessionMaxAge || DEFAULT_SESSION_MAX_AGE
+        maxAge: options.sessionMaxAge || DEFAULT_SESSION_MAX_AGE,
+        secure: options.cookiesSecure || false
       },
       saveUninitialized: true,
       resave: false,
