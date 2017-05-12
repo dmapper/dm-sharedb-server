@@ -5,10 +5,16 @@ const shareDbAccess = require('sharedb-access')
 const racerSchema = require('racer-schema')
 const shareDbHooks = require('sharedb-hooks')
 const redisPubSub = require('sharedb-redis-pubsub')
-const wsbusPubSub = require('sharedb-wsbus-pubsub')
 const racer = require('racer')
 const redis = require('redis-url')
 const initAdmins = require('./initAdmins')
+
+// Optional sharedb-ws-pubsub
+let wsbusPubSub = null
+try {
+  require.resolve('sharedb-wsbus-pubsub')
+  wsbusPubSub = require('sharedb-wsbus-pubsub')
+} catch (e) {}
 
 module.exports = (options) => {
   // ------------------------------------------------------->     storeUse     <#
@@ -60,6 +66,7 @@ module.exports = (options) => {
 
     // redis alternative
     } else if (conf.get('WSBUS_URL') && !conf.get('NO_WSBUS')) {
+      if (!wsbusPubSub) throw new Error("Please install the 'sharedb-wsbus-pubsub' package to use it")
       let pubsub = wsbusPubSub(conf.get('WSBUS_URL'))
 
       return racer.createBackend({

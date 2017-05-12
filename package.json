@@ -27,13 +27,13 @@
     "sharedb-hooks": "~3.0.0"
   },
   "optionalPeerDependencies": {
-    "derby-login": "*"
+    "derby-login": "*",
+    "sharedb-wsbus-pubsub": "*"
   },
   "peerDependencies": {
     "racer-highway": "*",
     "sharedb": "*",
     "sharedb-redis-pubsub": "*",
-    "sharedb-wsbus-pubsub": "*",
     "sharedb-mongo": "*",
     "nconf": "*",
     "react": "*",
