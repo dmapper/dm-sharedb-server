@@ -10,6 +10,7 @@ module.exports = (p) => `
     <style>${defaultStyles}</style>
     ${p.styles || ''}
     <script>window.IS_REACT = true</script>
+    <script>window.env = ${JSON.stringify(p.env)}</script>
   </head>
   <body>
     <div id='app'></div>
