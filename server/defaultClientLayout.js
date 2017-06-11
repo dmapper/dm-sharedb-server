@@ -8,13 +8,13 @@ module.exports = (p) => `
     <meta name='viewport' content='width=device-width, initial-scale=1.0' />
     ${p.head || ''}
     <style>${defaultStyles}</style>
-    ${p.styles || ''}    
+    ${p.styles || ''}
     <script>window.IS_REACT = true</script>
   </head>
   <body>
     <div id='app'></div>
     <script type='application/json' id='bundle'>${JSON.stringify(p.modelBundle)}</script>
-    <script defer src='${p.jsBundle}'></script>    
+    <script defer src='${p.jsBundle}'></script>
   </body>
 </html>
 `

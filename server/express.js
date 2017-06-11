@@ -112,6 +112,14 @@ module.exports = (backend, appRoutes, error, options, cb) => {
     // Client Apps routes
     // Memoize getting the end-user <head> code
     let getHead = _.memoize(options.getHead || (() => ''))
+
+    function getClientEnv () {
+      let env = {}
+      let pub = conf.get('PUBLIC') || []
+      pub.forEach(key => env[key] = conf.get(key))
+      return env
+    }
+
     expressApp.use((req, res, next) => {
       matchAppRoutes(req.url, appRoutes, (err, { appName, redirectLocation, renderProps }) => {
         if (err) return next()
@@ -129,7 +137,8 @@ module.exports = (backend, appRoutes, error, options, cb) => {
                 ? resourceManager.getProductionStyles(appName) : '',
             head: getHead(appName),
             modelBundle: bundle,
-            jsBundle: resourceManager.getResourcePath('bundle', appName)
+            jsBundle: resourceManager.getResourcePath('bundle', appName),
+            env: getClientEnv()
           })
           res.status(200).send(html)
         })
