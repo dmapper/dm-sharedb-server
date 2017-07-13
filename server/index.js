@@ -27,7 +27,7 @@ module.exports = (options) => {
       server = http.createServer(expressApp)
     }
     if (conf.get('SERVER_REQUEST_TIMEOUT') != null) {
-      server.timeout = conf.get('SERVER_REQUEST_TIMEOUT')
+      server.timeout = ~~conf.get('SERVER_REQUEST_TIMEOUT')
     }
 
     if (options.websockets) server.on('upgrade', upgrade)
