@@ -34,7 +34,8 @@ module.exports = (options) => {
           server: {
             sslKey: sslKey,
             sslCert: sslCert
-          }
+          },
+          allowAllQueries: true
         }, callback)
       }
     })

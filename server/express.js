@@ -40,6 +40,16 @@ module.exports = (backend, appRoutes, error, options, cb) => {
     connectMongoOptions.touchAfter = options.sessionUpdateInterval ||
         getDefaultSessionUpdateInterval(options.sessionMaxAge)
   }
+  if (process.env.MONGO_SSL_CERT_PATH && process.env.MONGO_SSL_KEY_PATH) {
+    let sslCert = fs.readFileSync(process.env.MONGO_SSL_CERT_PATH)
+    let sslKey = fs.readFileSync(process.env.MONGO_SSL_KEY_PATH)
+    connectMongoOptions.mongoOptions = {
+      server: {
+        sslKey: sslKey,
+        sslCert: sslCert
+      }
+    }
+  }
   let sessionStore = new MongoStore(connectMongoOptions)
   sessionStore.on('connected', () => {
     let session = expressSession({
