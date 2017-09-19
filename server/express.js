@@ -45,6 +45,7 @@ module.exports = (backend, appRoutes, error, options, cb) => {
     let sslKey = fs.readFileSync(process.env.MONGO_SSL_KEY_PATH)
     connectMongoOptions.mongoOptions = {
       server: {
+        sslValidate: false,
         sslKey: sslKey,
         sslCert: sslCert
       }

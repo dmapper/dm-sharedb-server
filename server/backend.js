@@ -33,6 +33,7 @@ module.exports = (options) => {
         MongoClient.connect(mongoUrl, {
           server: {
             sslKey: sslKey,
+            sslValidate: false,
             sslCert: sslCert
           },
           allowAllQueries: true
