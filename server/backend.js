@@ -8,6 +8,7 @@ const redisPubSub = require('sharedb-redis-pubsub')
 const racer = require('racer')
 const redis = require('redis-url')
 const initAdmins = require('./initAdmins')
+const MongoClient = require('mongodb').MongoClient
 
 // Optional sharedb-ws-pubsub
 let wsbusPubSub = null
@@ -22,10 +23,29 @@ module.exports = (options) => {
 
   // ShareDB Setup
   let mongoUrl = conf.get('MONGO_URL')
-
-  let mongo = shareDbMongo(mongoUrl, {
-    allowAllQueries: true
-  })
+  let mongo
+  if (process.env.MONGO_SSL_CERT_PATH && process.env.MONGO_SSL_KEY_PATH) {
+    let sslCert = fs.readFileSync(process.env.MONGO_SSL_CERT_PATH)
+    let sslKey = fs.readFileSync(process.env.MONGO_SSL_KEY_PATH)
+  
+    mongo = shareDbMongo({
+      mongo: (callback) => {
+        MongoClient.connect(mongoUrl, {
+          server: {
+            sslKey: sslKey,
+            sslValidate: false,
+            sslCert: sslCert
+          },
+          allowAllQueries: true
+        }, callback)
+      }
+    })
+  } else {
+    mongo = shareDbMongo(mongoUrl, {
+      allowAllQueries: true
+    })
+  }
+  
 
   let backend = (() => {
     // For horizontal scaling, in production, redis is required.
