@@ -1,3 +1,6 @@
+const React = require('react')
+const ReactDOMServer = require('react-dom/server')
+const { StaticRouter } = require('react-router')
 const _ = require('lodash')
 const url = require('url')
 const path = require('path')
@@ -16,10 +19,9 @@ const connectMongo = require('connect-mongo')
 const racerHighway = require('racer-highway')
 const resourceManager = require('./resourceManager')
 const defaultClientLayout = require('./defaultClientLayout')
-const { match } = require('react-router')
 
 const DEFAULT_SESSION_MAX_AGE = 1000 * 60 * 60 * 24 * 365 * 2 // 2 years
-function getDefaultSessionUpdateInterval (sessionMaxAge) {
+function getDefaultSessionUpdateInterval(sessionMaxAge) {
   // maxAge is in ms. Return in s. So it's 1/10nth of maxAge.
   return Math.floor(sessionMaxAge / 1000 / 10)
 }
@@ -29,7 +31,7 @@ let derbyLogin = null
 try {
   require.resolve('derby-login')
   derbyLogin = require('derby-login')
-} catch (e) {}
+} catch (e) { }
 
 module.exports = (backend, appRoutes, error, options, cb) => {
   let MongoStore = connectMongo(expressSession)
@@ -38,18 +40,7 @@ module.exports = (backend, appRoutes, error, options, cb) => {
   let connectMongoOptions = { url: mongoUrl }
   if (options.sessionMaxAge) {
     connectMongoOptions.touchAfter = options.sessionUpdateInterval ||
-        getDefaultSessionUpdateInterval(options.sessionMaxAge)
-  }
-  if (process.env.MONGO_SSL_CERT_PATH && process.env.MONGO_SSL_KEY_PATH) {
-    let sslCert = fs.readFileSync(process.env.MONGO_SSL_CERT_PATH)
-    let sslKey = fs.readFileSync(process.env.MONGO_SSL_KEY_PATH)
-    connectMongoOptions.mongoOptions = {
-      server: {
-        sslValidate: false,
-        sslKey: sslKey,
-        sslCert: sslCert
-      }
-    }
+      getDefaultSessionUpdateInterval(options.sessionMaxAge)
   }
   let sessionStore = new MongoStore(connectMongoOptions)
   sessionStore.on('connected', () => {
@@ -76,7 +67,6 @@ module.exports = (backend, appRoutes, error, options, cb) => {
     let expressApp = express()
 
     // ----------------------------------------------------->    logs    <#
-    options.ee.emit('logs', expressApp)
 
     expressApp
       .use(compression())
@@ -90,7 +80,6 @@ module.exports = (backend, appRoutes, error, options, cb) => {
       .use(session)
 
     // ----------------------------------------------------->    afterSession    <#
-    options.ee.emit('afterSession', expressApp)
 
     // Pipe env to client through the model
     expressApp.use((req, res, next) => {
@@ -113,46 +102,55 @@ module.exports = (backend, appRoutes, error, options, cb) => {
 
     expressApp.use(miscMiddleware(backend))
 
-    // ----------------------------------------------------->    middleware    <#
-    options.ee.emit('middleware', expressApp)
-
-    // Server routes
-    // ----------------------------------------------------->      routes      <#
-    options.ee.emit('routes', expressApp)
-
     // Client Apps routes
     // Memoize getting the end-user <head> code
     let getHead = _.memoize(options.getHead || (() => ''))
 
-    function getClientEnv () {
+    function getClientEnv() {
       let env = {}
       let pub = conf.get('PUBLIC') || []
       pub.forEach(key => env[key] = conf.get(key))
       return env
     }
 
-    expressApp.use((req, res, next) => {
-      matchAppRoutes(req.url, appRoutes, (err, { appName, redirectLocation, renderProps }) => {
-        if (err) return next()
-        if (redirectLocation) {
-          return res.redirect(302, redirectLocation.pathname + redirectLocation.search)
-        }
-        if (!renderProps) return next()
+    expressApp.use('/', options.serverRouter)
 
-        // If client route found, render the client-side app
-        let model = req.model
-        model.bundle((err, bundle) => {
-          if (err) return next('500: ' + req.url + '. Error: ' + err)
-          let html = defaultClientLayout({
-            styles: process.env.NODE_ENV === 'production'
-                ? resourceManager.getProductionStyles(appName) : '',
-            head: getHead(appName),
-            modelBundle: bundle,
-            jsBundle: resourceManager.getResourcePath('bundle', appName),
-            env: getClientEnv()
-          })
-          res.status(200).send(html)
+    const App = options.App
+    expressApp.use((req, res, next) => {
+      const context = {}
+
+      const markup = ReactDOMServer.renderToString(React.createElement(
+        StaticRouter,
+        {
+          location: req.url,
+          context: context
+        },
+        React.createElement(
+          'div',
+          null,
+          React.createElement(App, null)
+        )
+      ))
+
+      let model = req.model
+      model.bundle((err, bundle) => {
+        if (err) return next('500: ' + req.url + '. Error: ' + err)
+        let html = defaultClientLayout({
+          styles: process.env.NODE_ENV === 'production'
+            ? resourceManager.getProductionStyles('appName') : '',
+          head: getHead('appName'),
+          markup,
+          modelBundle: bundle,
+          jsBundle: resourceManager.getResourcePath('bundle', 'main'),
+          env: getClientEnv()
         })
+        if (context.url) {
+          // Somewhere a `<Redirect>` was rendered
+          redirect(301, context.url)
+        } else {
+          // we're good, send the response
+          res.send(html)
+        }
       })
     })
 
@@ -168,34 +166,15 @@ module.exports = (backend, appRoutes, error, options, cb) => {
   })
 }
 
-function matchUrl (location, routes, cb) {
+function matchUrl(location, routes, cb) {
   match({ routes, location }, (err, redirectLocation, renderProps) => {
     if (err) return cb(err)
     cb(null, { redirectLocation, renderProps })
   })
 }
 
-function matchAppRoutes (location, appRoutes, cb) {
-  let appNames = _.keys(appRoutes)
-  let match = {}
-  async.forEachSeries(appNames, (appName, cb) => {
-    let routes = appRoutes[appName]
-    matchUrl(location, routes, (err, { redirectLocation, renderProps }) => {
-      if (err) console.error('Error parsing react routes', err)
-      if (redirectLocation || renderProps) {
-        match = { appName, redirectLocation, renderProps }
-        cb(true)
-      } else {
-        cb()
-      }
-    })
-  }, () => {
-    cb(null, match)
-  })
-}
-
 // Misc middleware
-function miscMiddleware (backend) {
+function miscMiddleware(backend) {
   return (req, res, next) => {
     let model = req.model
 
@@ -203,7 +182,7 @@ function miscMiddleware (backend) {
       model.set('_session.isAdmin', true)
     }
     if (req.cookies.redirect && (!req.cookies.redirectWhen ||
-        req.cookies.redirectWhen === 'loggedIn') && req.session.loggedIn) {
+      req.cookies.redirectWhen === 'loggedIn') && req.session.loggedIn) {
       let redirectUrl = req.cookies.redirect
       res.clearCookie('redirectWhen')
       res.clearCookie('redirect')
