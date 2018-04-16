@@ -9,6 +9,7 @@ const racer = require('racer')
 const redis = require('redis-url')
 const initAdmins = require('./initAdmins')
 const MongoClient = require('mongodb').MongoClient
+const fs = require('fs')
 
 // Optional sharedb-ws-pubsub
 let wsbusPubSub = null
