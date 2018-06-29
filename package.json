@@ -20,6 +20,7 @@
     "method-override": "~2.1.3",
     "mongodb": "^2.2.31",
     "racer-schema": "^0.1.2",
+    "react-router-config": "^1.0.0-beta.4",
     "redis": "^2.2.0",
     "redis-url": "^1.2.0",
     "serve-favicon": "~2.1.1",
@@ -39,6 +40,6 @@
     "nconf": "*",
     "react": "*",
     "react-dom": "*",
-    "react-router": "*"
+    "react-router": "4.x"
   }
 }

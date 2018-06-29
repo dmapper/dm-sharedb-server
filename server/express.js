@@ -17,7 +17,7 @@ const connectMongo = require('connect-mongo')
 const racerHighway = require('racer-highway')
 const resourceManager = require('./resourceManager')
 const defaultClientLayout = require('./defaultClientLayout')
-const { match } = require('react-router')
+const { matchRoutes } = require('react-router-config')
 
 const DEFAULT_SESSION_MAX_AGE = 1000 * 60 * 60 * 24 * 365 * 2 // 2 years
 function getDefaultSessionUpdateInterval (sessionMaxAge) {
@@ -133,27 +133,24 @@ module.exports = (backend, appRoutes, error, options, cb) => {
     }
 
     expressApp.use((req, res, next) => {
-      matchAppRoutes(req.url, appRoutes, (err, { appName, redirectLocation, renderProps }) => {
-        if (err) return next()
-        if (redirectLocation) {
-          return res.redirect(302, redirectLocation.pathname + redirectLocation.search)
-        }
-        if (!renderProps) return next()
+      let matched = matchAppRoutes(req.url, appRoutes)
+      if (!matched) return next()
+      if (matched.redirect) return res.redirect(302, matched.redirect)
+      let {appName} = matched
 
-        // If client route found, render the client-side app
-        let model = req.model
-        model.bundle((err, bundle) => {
-          if (err) return next('500: ' + req.url + '. Error: ' + err)
-          let html = defaultClientLayout({
-            styles: process.env.NODE_ENV === 'production'
-                ? resourceManager.getProductionStyles(appName) : '',
-            head: getHead(appName),
-            modelBundle: bundle,
-            jsBundle: resourceManager.getResourcePath('bundle', appName),
-            env: getClientEnv()
-          })
-          res.status(200).send(html)
+      // If client route found, render the client-side app
+      let model = req.model
+      model.bundle((err, bundle) => {
+        if (err) return next('500: ' + req.url + '. Error: ' + err)
+        let html = defaultClientLayout({
+          styles: process.env.NODE_ENV === 'production'
+              ? resourceManager.getProductionStyles(appName) : '',
+          head: getHead(appName),
+          modelBundle: bundle,
+          jsBundle: resourceManager.getResourcePath('bundle', appName),
+          env: getClientEnv()
         })
+        res.status(200).send(html)
       })
     })
 
@@ -170,29 +167,33 @@ module.exports = (backend, appRoutes, error, options, cb) => {
 }
 
 function matchUrl (location, routes, cb) {
-  match({ routes, location }, (err, redirectLocation, renderProps) => {
-    if (err) return cb(err)
-    cb(null, { redirectLocation, renderProps })
-  })
+  let matched = matchRoutes(routes, location)
+  console.log('> match', routes, location)
+  console.log('> matched', matched)
+  if (matched && matched.length) {
+    // check if the last route has redirect
+    let lastRoute = matched[matched.length - 1]
+    if (lastRoute.route.redirect) {
+      return { redirect: lastRoute.route.redirect }
+    // explicitely check that path is present,
+    // because it's possible that only the Root component was matched
+    // which doesn't actually render anything real,
+    // but just a side-effect of react-router config structure.
+    } else if (lastRoute.route.path) {
+      return { render: true }
+    }
+  }
+  return false
 }
 
 function matchAppRoutes (location, appRoutes, cb) {
   let appNames = _.keys(appRoutes)
-  let match = {}
-  async.forEachSeries(appNames, (appName, cb) => {
+  for (let appName of appNames) {
     let routes = appRoutes[appName]
-    matchUrl(location, routes, (err, { redirectLocation, renderProps }) => {
-      if (err) console.error('Error parsing react routes', err)
-      if (redirectLocation || renderProps) {
-        match = { appName, redirectLocation, renderProps }
-        cb(true)
-      } else {
-        cb()
-      }
-    })
-  }, () => {
-    cb(null, match)
-  })
+    let result = matchUrl(location, routes)
+    if (result) return Object.assign({ appName }, result)
+  }
+  return false
 }
 
 // Misc middleware
