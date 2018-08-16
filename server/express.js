@@ -167,7 +167,7 @@ module.exports = (backend, appRoutes, error, options, cb) => {
 }
 
 function matchUrl (location, routes, cb) {
-  let matched = matchRoutes(routes, location)
+  let matched = matchRoutes(routes, location.split('?')[0])
   console.log('> match', routes, location)
   console.log('> matched', matched)
   if (matched && matched.length) {
