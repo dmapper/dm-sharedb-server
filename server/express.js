@@ -3,12 +3,9 @@ const url = require('url')
 const path = require('path')
 const async = require('async')
 const conf = require('nconf')
-const chalk = require('chalk')
 const express = require('express')
 const fs = require('fs')
 const expressSession = require('express-session')
-const serveStatic = require('serve-static')
-const favicon = require('serve-favicon')
 const compression = require('compression')
 const cookieParser = require('cookie-parser')
 const bodyParser = require('body-parser')
@@ -18,19 +15,14 @@ const racerHighway = require('racer-highway')
 const resourceManager = require('./resourceManager')
 const defaultClientLayout = require('./defaultClientLayout')
 const { matchRoutes } = require('react-router-config')
+const hsts = require('hsts')
 
+const FORCE_HTTPS = conf.get('FORCE_HTTPS_REDIRECT')
 const DEFAULT_SESSION_MAX_AGE = 1000 * 60 * 60 * 24 * 365 * 2 // 2 years
 function getDefaultSessionUpdateInterval (sessionMaxAge) {
   // maxAge is in ms. Return in s. So it's 1/10nth of maxAge.
   return Math.floor(sessionMaxAge / 1000 / 10)
 }
-
-// Optional derby-login
-let derbyLogin = null
-try {
-  require.resolve('derby-login')
-  derbyLogin = require('derby-login')
-} catch (e) {}
 
 module.exports = (backend, appRoutes, error, options, cb) => {
   let MongoStore = connectMongo(expressSession)
@@ -76,13 +68,31 @@ module.exports = (backend, appRoutes, error, options, cb) => {
 
     let expressApp = express()
 
+    // Required to be able to determine whether the protocol is 'http' or 'https'
+    if (FORCE_HTTPS) expressApp.enable('trust proxy')
+
     // ----------------------------------------------------->    logs    <#
     options.ee.emit('logs', expressApp)
 
     expressApp
       .use(compression())
-      .use(serveStatic(options.publicPath))
-      .use('/build/client', express.static(options.dirname + '/build/client'))
+      .use('/healthcheck', (req, res) => res.status(200).send('OK'))
+
+    if (FORCE_HTTPS) {
+      // Redirect http to https
+      expressApp
+        .use((req, res, next) => {
+          if (req.protocol !== 'https') {
+            return res.redirect(301, 'https://' + req.get('host') + req.originalUrl)
+          }
+          next()
+        })
+        .use(hsts({ maxAge: 15552000 })) // enforce https for 180 days
+    }
+
+    expressApp
+      .use(express.static(options.publicPath, { maxAge: '1h' }))
+      .use('/build/client', express.static(options.dirname + '/build/client', { maxAge: '1h' }))
       .use(backend.modelMiddleware())
       .use(cookieParser())
       .use(bodyParser.json({ limit: options.bodyParserLimit }))
@@ -93,26 +103,25 @@ module.exports = (backend, appRoutes, error, options, cb) => {
     // ----------------------------------------------------->    afterSession    <#
     options.ee.emit('afterSession', expressApp)
 
+    // userId
+    expressApp.use((req, res, next) => {
+      let model = req.model
+      // Set anonymous userId unless it was set by some end-user auth middleware
+      if (req.session.userId == null) req.session.userId = model.id()
+      // Set userId into model
+      model.set('_session.userId', req.session.userId)
+      next()
+    })
+    
     // Pipe env to client through the model
     expressApp.use((req, res, next) => {
       if (req.xhr) return next()
       let model = req.model
-      model.set('_session.env', global.env, next)
+      model.set('_session.env', global.env)
+      next()
     })
 
     expressApp.use(hwHandlers.middleware)
-
-    if (derbyLogin) {
-      expressApp.use(derbyLogin.middleware(backend, options.login))
-    } else {
-      expressApp.use((req, res, next) => {
-        let model = req.model
-        if (req.session.userId == null) req.session.userId = model.id()
-        model.set('_session.userId', req.session.userId, next)
-      })
-    }
-
-    expressApp.use(miscMiddleware(backend))
 
     // ----------------------------------------------------->    middleware    <#
     options.ee.emit('middleware', expressApp)
@@ -124,13 +133,6 @@ module.exports = (backend, appRoutes, error, options, cb) => {
     // Client Apps routes
     // Memoize getting the end-user <head> code
     let getHead = _.memoize(options.getHead || (() => ''))
-
-    function getClientEnv () {
-      let env = {}
-      let pub = conf.get('PUBLIC') || []
-      pub.forEach(key => env[key] = conf.get(key))
-      return env
-    }
 
     expressApp.use((req, res, next) => {
       let matched = matchAppRoutes(req.url, appRoutes)
@@ -148,7 +150,7 @@ module.exports = (backend, appRoutes, error, options, cb) => {
           head: getHead(appName),
           modelBundle: bundle,
           jsBundle: resourceManager.getResourcePath('bundle', appName),
-          env: getClientEnv()
+          env: model.get('_session.env') || {}
         })
         res.status(200).send(html)
       })
@@ -167,9 +169,7 @@ module.exports = (backend, appRoutes, error, options, cb) => {
 }
 
 function matchUrl (location, routes, cb) {
-  let matched = matchRoutes(routes, location.split('?')[0])
-  console.log('> match', routes, location)
-  console.log('> matched', matched)
+  let matched = matchRoutes(routes, location.replace(/\?.*/, ''))
   if (matched && matched.length) {
     // check if the last route has redirect
     let lastRoute = matched[matched.length - 1]
@@ -194,32 +194,4 @@ function matchAppRoutes (location, appRoutes, cb) {
     if (result) return Object.assign({ appName }, result)
   }
   return false
-}
-
-// Misc middleware
-function miscMiddleware (backend) {
-  return (req, res, next) => {
-    let model = req.model
-
-    if (backend.ADMINS.indexOf(req.session.userId) !== -1) {
-      model.set('_session.isAdmin', true)
-    }
-    if (req.cookies.redirect && (!req.cookies.redirectWhen ||
-        req.cookies.redirectWhen === 'loggedIn') && req.session.loggedIn) {
-      let redirectUrl = req.cookies.redirect
-      res.clearCookie('redirectWhen')
-      res.clearCookie('redirect')
-      return res.redirect(redirectUrl)
-    }
-
-    if (!req.session.loggedIn) return next()
-    let auth = model.at('auths.' + req.session.userId)
-    auth.fetch(() => {
-      // TODO: implement setting 'timestamps.lastactivity' through redis
-      if (req.method === 'GET' && !req.xhr && auth.get()) {
-        auth.set('timestamps.lastactivity', Date.now())
-      }
-      next()
-    })
-  }
 }

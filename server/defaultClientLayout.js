@@ -2,20 +2,19 @@ const fs = require('fs')
 const path = require('path')
 const defaultStyles = fs.readFileSync(path.join(__dirname, 'defaultStyles.css'), 'utf8')
 
-module.exports = (p) => `
+module.exports = ({head, styles, env, modelBundle, jsBundle}) => `
 <html>
   <head>
     <meta name='viewport' content='width=device-width, initial-scale=1.0' />
-    ${p.head || ''}
+    ${head || ''}
     <style>${defaultStyles}</style>
-    ${p.styles || ''}
-    <script>window.IS_REACT = true</script>
-    <script>window.env = ${JSON.stringify(p.env)}</script>
+    ${styles || ''}    
+    <script>window.env = JSON.parse(${JSON.stringify(env)})</script>
   </head>
   <body>
     <div id='app'></div>
-    <script type='application/json' id='bundle'>${JSON.stringify(p.modelBundle)}</script>
-    <script defer src='${p.jsBundle}'></script>
+    <script type='application/json' id='bundle'>${JSON.stringify(modelBundle)}</script>
+    <script defer src='${jsBundle}'></script>
   </body>
 </html>
 `

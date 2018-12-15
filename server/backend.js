@@ -7,7 +7,6 @@ const shareDbHooks = require('sharedb-hooks')
 const redisPubSub = require('sharedb-redis-pubsub')
 const racer = require('racer')
 const redis = require('redis-url')
-const initAdmins = require('./initAdmins')
 const MongoClient = require('mongodb').MongoClient
 const fs = require('fs')
 
@@ -135,8 +134,6 @@ module.exports = (options) => {
 
   // ------------------------------------------------------->      backend       <#
   options.ee.emit('backend', backend)
-
-  initAdmins(backend)
 
   return {backend, mongo, redis}
 }
