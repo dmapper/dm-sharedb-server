@@ -9,7 +9,7 @@ module.exports = ({head, styles, env, modelBundle, jsBundle}) => `
     ${head || ''}
     <style>${defaultStyles}</style>
     ${styles || ''}    
-    <script>window.env = JSON.parse(${JSON.stringify(env)})</script>
+    <script>window.env = ${JSON.stringify(env)}</script>
   </head>
   <body>
     <div id='app'></div>
