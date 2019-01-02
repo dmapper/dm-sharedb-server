@@ -2,7 +2,6 @@
 // All functions are memoized since their result is constant within
 // the life period of the application. And depends only on the type of
 // resource and the name of the application
-
 const path = require('path')
 const fs = require('fs')
 const _ = require('lodash')
@@ -20,7 +19,7 @@ exports.getResourcePath = _.memoize((type, appName) => {
         postfix = '.' + exports.getHash(appName, type)
       } else {
         prefix = process.env.DEVSERVER_URL ||
-            ('http://localhost:' + (process.env.DEVSERVER_PORT || 3010))
+            (getLocalBaseUrl() + (process.env.DEVSERVER_PORT || 3010))
       }
       url = prefix + BUILD_CLIENT_PATH + appName + postfix + '.js'
       break
@@ -32,6 +31,13 @@ exports.getResourcePath = _.memoize((type, appName) => {
   }
   return url
 })
+
+const getLocalBaseUrl = () => {
+  require('dotenv').config({ path: path.resolve(process.cwd(), '.env.local') })
+  if (process.env.BASE_URL) return `${process.env.BASE_URL.split(':').slice(0, 2).join(':')}:`
+
+  return 'http://localhost:'
+}
 
 // Get assets hashes in production (used for long term caching)
 exports.getHash = _.memoize((appName, type) => {
