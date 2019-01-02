@@ -133,6 +133,9 @@ module.exports = (options) => {
     })
   })
 
+  // ------------------------------------------------------->      backend       <#
+  options.ee.emit('backend', backend)
+
   initAdmins(backend)
 
   return {backend, mongo, redis}

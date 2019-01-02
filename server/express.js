@@ -75,8 +75,6 @@ module.exports = (backend, appRoutes, error, options, cb) => {
     let hwHandlers = racerHighway(backend, { session }, clientOptions)
 
     let expressApp = express()
-    // ------------------------------------------------------->      backend       <#
-    options.ee.emit('backend', backend)
 
     // ----------------------------------------------------->    logs    <#
     options.ee.emit('logs', expressApp)
