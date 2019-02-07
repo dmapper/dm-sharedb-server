@@ -1,4 +1,7 @@
-const _ = require('lodash')
+const _keys = require('lodash/keys')
+const _memoize = require('lodash/memoize')
+const _defaults = require('lodash/defaults')
+const _cloneDeep = require('lodash/cloneDeep')
 const url = require('url')
 const path = require('path')
 const async = require('async')
@@ -16,9 +19,13 @@ const resourceManager = require('./resourceManager')
 const defaultClientLayout = require('./defaultClientLayout')
 const { matchRoutes } = require('react-router-config')
 const hsts = require('hsts')
-
 const FORCE_HTTPS = conf.get('FORCE_HTTPS_REDIRECT')
 const DEFAULT_SESSION_MAX_AGE = 1000 * 60 * 60 * 24 * 365 * 2 // 2 years
+const DEFAULT_BODY_PARSER_OPTIONS = {
+  urlencoded: {
+    extended: true
+  }
+}
 function getDefaultSessionUpdateInterval (sessionMaxAge) {
   // maxAge is in ms. Return in s. So it's 1/10nth of maxAge.
   return Math.floor(sessionMaxAge / 1000 / 10)
@@ -95,8 +102,8 @@ module.exports = (backend, appRoutes, error, options, cb) => {
       .use('/build/client', express.static(options.dirname + '/build/client', { maxAge: '1h' }))
       .use(backend.modelMiddleware())
       .use(cookieParser())
-      .use(bodyParser.json({ limit: options.bodyParserLimit }))
-      .use(bodyParser.urlencoded({ extended: true, limit: options.bodyParserLimit }))
+      .use(bodyParser.json(getBodyParserOptionsByType('json', options.bodyParser)))
+      .use(bodyParser.urlencoded(getBodyParserOptionsByType('urlencoded', options.bodyParser)))
       .use(methodOverride())
       .use(session)
 
@@ -112,7 +119,7 @@ module.exports = (backend, appRoutes, error, options, cb) => {
       model.set('_session.userId', req.session.userId)
       next()
     })
-    
+
     // Pipe env to client through the model
     expressApp.use((req, res, next) => {
       if (req.xhr) return next()
@@ -132,7 +139,7 @@ module.exports = (backend, appRoutes, error, options, cb) => {
 
     // Client Apps routes
     // Memoize getting the end-user <head> code
-    let getHead = _.memoize(options.getHead || (() => ''))
+    let getHead = _memoize(options.getHead || (() => ''))
 
     expressApp.use((req, res, next) => {
       let matched = matchAppRoutes(req.url, appRoutes)
@@ -168,6 +175,15 @@ module.exports = (backend, appRoutes, error, options, cb) => {
   })
 }
 
+function getBodyParserOptionsByType (type, options = {}) {
+  return _defaults(
+    _cloneDeep(options[type]),
+    options.general,
+    DEFAULT_BODY_PARSER_OPTIONS[type],
+    DEFAULT_BODY_PARSER_OPTIONS.general
+  )
+}
+
 function matchUrl (location, routes, cb) {
   let matched = matchRoutes(routes, location.replace(/\?.*/, ''))
   if (matched && matched.length) {
@@ -187,7 +203,7 @@ function matchUrl (location, routes, cb) {
 }
 
 function matchAppRoutes (location, appRoutes, cb) {
-  let appNames = _.keys(appRoutes)
+  let appNames = _keys(appRoutes)
   for (let appName of appNames) {
     let routes = appRoutes[appName]
     let result = matchUrl(location, routes)
