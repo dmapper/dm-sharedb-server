@@ -4,7 +4,7 @@
     "registry": "https://registry.npmjs.org/"
   },
   "description": "Express.js with plugged in ShareDB",
-  "version": "7.0.0-alpha.1",
+  "version": "7.0.1-alpha.1",
   "main": "index.js",
   "dependencies": {
     "async": "^1.5.0",
