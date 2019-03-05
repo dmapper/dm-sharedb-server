@@ -32,6 +32,7 @@ module.exports = (options) => {
     mongo = shareDbMongo({
       mongo: (callback) => {
         MongoClient.connect(mongoUrl, {
+          allowAllQueries: true,
           useNewUrlParser: true,
           sslValidate: false,
           sslCert,
@@ -41,6 +42,7 @@ module.exports = (options) => {
     })
   } else {
     mongo = shareDbMongo(mongoUrl, {
+      allowAllQueries: true,
       useNewUrlParser: true,
     })
   }
@@ -48,8 +50,6 @@ module.exports = (options) => {
 
   let backend = (() => {
     // For horizontal scaling, in production, redis is required.
-    const test = conf.get('REDIS_URL') || ''
-    console.log('REDIS_URL', test.slice(0, 14) + '...')
     if (conf.get('REDIS_URL') && !conf.get('NO_REDIS')) {
       let redisClient = redis.connect()
       let redisObserver = redis.connect()
@@ -64,11 +64,9 @@ module.exports = (options) => {
           let [, , , instance] = (process.env.HOSTNAME || '').split('.')
           if (instance == null || instance === '1') {
             redisClient.flushdb((err, didSucceed) => {
-              if (err) {
-                console.log('Redis flushdb err:', err)
-              } else {
-                console.log('Redis flushdb success:', didSucceed)
-              }
+              err
+                ? console.log('Redis flushdb err:', err)
+                : console.log('Redis flushdb success:', didSucceed)
             })
           }
         })
