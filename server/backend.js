@@ -32,24 +32,24 @@ module.exports = (options) => {
     mongo = shareDbMongo({
       mongo: (callback) => {
         MongoClient.connect(mongoUrl, {
-          server: {
-            sslKey: sslKey,
-            sslValidate: false,
-            sslCert: sslCert
-          },
-          allowAllQueries: true
+          useNewUrlParser: true,
+          sslValidate: false,
+          sslCert,
+          sslKey,
         }, callback)
       }
     })
   } else {
     mongo = shareDbMongo(mongoUrl, {
-      allowAllQueries: true
+      useNewUrlParser: true,
     })
   }
   
 
   let backend = (() => {
     // For horizontal scaling, in production, redis is required.
+    const test = conf.get('REDIS_URL') || ''
+    console.log('REDIS_URL', test.slice(0, 14) + '...')
     if (conf.get('REDIS_URL') && !conf.get('NO_REDIS')) {
       let redisClient = redis.connect()
       let redisObserver = redis.connect()

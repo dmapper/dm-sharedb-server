@@ -45,11 +45,10 @@ module.exports = (backend, appRoutes, error, options, cb) => {
     let sslCert = fs.readFileSync(process.env.MONGO_SSL_CERT_PATH)
     let sslKey = fs.readFileSync(process.env.MONGO_SSL_KEY_PATH)
     connectMongoOptions.mongoOptions = {
-      server: {
-        sslValidate: false,
-        sslKey: sslKey,
-        sslCert: sslCert
-      }
+      useNewUrlParser: true,
+      sslValidate: false,
+      sslKey: sslKey,
+      sslCert: sslCert
     }
   }
   let sessionStore = new MongoStore(connectMongoOptions)
