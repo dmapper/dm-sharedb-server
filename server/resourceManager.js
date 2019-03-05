@@ -31,7 +31,7 @@ exports.getResourcePath = _.memoize((type, appName) => {
       throw new Error('No resource found for \'' + type + '\'')
   }
   return url
-})
+}, (...args) => JSON.stringify(args))
 
 // Get assets hashes in production (used for long term caching)
 exports.getHash = _.memoize((appName, type) => {
