@@ -33,7 +33,7 @@ module.exports = (options) => {
       mongo: (callback) => {
         MongoClient.connect(mongoUrl, {
           allowAllQueries: true,
-          useNewUrlParser: true,
+          useNewUrlParser: false,
           sslValidate: false,
           sslCert,
           sslKey,
@@ -42,8 +42,7 @@ module.exports = (options) => {
     })
   } else {
     mongo = shareDbMongo(mongoUrl, {
-      allowAllQueries: true,
-      useNewUrlParser: true,
+      allowAllQueries: true
     })
   }
   
