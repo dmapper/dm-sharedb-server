@@ -30,10 +30,9 @@ module.exports = (options) => {
     let sslKey = fs.readFileSync(process.env.MONGO_SSL_KEY_PATH)
   
     mongo = shareDbMongo({
+      allowAllQueries: true,
       mongo: (callback) => {
         MongoClient.connect(mongoUrl, {
-          allowAllQueries: true,
-          useNewUrlParser: false,
           sslValidate: false,
           sslCert,
           sslKey,
