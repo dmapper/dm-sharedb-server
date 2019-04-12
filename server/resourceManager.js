@@ -20,7 +20,7 @@ exports.getResourcePath = _.memoize((type, appName) => {
         postfix = '.' + exports.getHash(appName, type)
       } else {
         prefix = process.env.DEVSERVER_URL ||
-            ('http://localhost:' + (process.env.DEVSERVER_PORT || 3010))
+            ('http://localhost:' + (process.env.DEV_PORT || 3010))
       }
       url = prefix + BUILD_CLIENT_PATH + appName + postfix + '.js'
       break
