@@ -36,12 +36,14 @@ module.exports = (options) => {
           sslValidate: false,
           sslCert,
           sslKey,
+          ...(options.mongoOptions || {})
         }, callback)
       }
     })
   } else {
     mongo = shareDbMongo(mongoUrl, {
-      allowAllQueries: true
+      allowAllQueries: true,
+      mongoOptions: options.mongoOptions || {}
     })
   }
   
