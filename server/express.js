@@ -165,6 +165,12 @@ module.exports = (backend, appRoutes, error, options, cb) => {
 
     expressApp
       .all('*', (req, res, next) => next('404: ' + req.url))
+      .use(function (err, req, res, next) {
+        if (err.name === 'MongoError' && err.message === 'Topology was destroyed') {
+          process.exit()
+        }
+        next(err)
+      })
       .use(error)
 
     cb({
