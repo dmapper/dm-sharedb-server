@@ -84,6 +84,8 @@ module.exports = (backend, appRoutes, error, options, cb) => {
     expressApp
       .use(compression())
       .use('/healthcheck', (req, res) => res.status(200).send('OK'))
+      // Google LoadBalancer healthcheck url
+      .use('/healthz', (req, res) => res.status(200).send('OK'))
 
     if (FORCE_HTTPS) {
       // Redirect http to https
