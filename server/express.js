@@ -2,9 +2,6 @@ const _keys = require('lodash/keys')
 const _memoize = require('lodash/memoize')
 const _defaults = require('lodash/defaults')
 const _cloneDeep = require('lodash/cloneDeep')
-const url = require('url')
-const path = require('path')
-const async = require('async')
 const conf = require('nconf')
 const express = require('express')
 const fs = require('fs')
@@ -142,18 +139,36 @@ module.exports = (backend, appRoutes, error, options, cb) => {
     let getHead = _memoize(options.getHead || (() => ''))
 
     expressApp.use((req, res, next) => {
-      let matched = matchAppRoutes(req.url, appRoutes)
-      if (!matched) return next()
+      const matched = matchAppRoutes(req.url, appRoutes)
+      if (!matched) return next(404)
       if (matched.redirect) return res.redirect(302, matched.redirect)
-      let {appName} = matched
-
+      req.appName = matched.appName
+      const model = req.model
+      const filters = matched.filters
+      if (!filters) return next()
+      let needToBreak
+      for (const filter of filters) {
+        filter(
+          model,
+          err => {
+            needToBreak = true
+            next(err)
+          },
+          url => {
+            needToBreak = true
+            res.redirect(url)
+          }
+        )
+        if (needToBreak) break
+      }
+    }, (req, res, next) => {
       // If client route found, render the client-side app
-      let model = req.model
+      const { appName, model } = req
       model.bundle((err, bundle) => {
         if (err) return next('500: ' + req.url + '. Error: ' + err)
         let html = defaultClientLayout({
           styles: process.env.NODE_ENV === 'production'
-              ? resourceManager.getProductionStyles(appName) : '',
+            ? resourceManager.getProductionStyles(appName) : '',
           head: getHead(appName),
           modelBundle: bundle,
           jsBundle: resourceManager.getResourcePath('bundle', appName),
@@ -202,7 +217,7 @@ function matchUrl (location, routes, cb) {
     // which doesn't actually render anything real,
     // but just a side-effect of react-router config structure.
     } else if (lastRoute.route.path) {
-      return { render: true }
+      return { render: true, filters: lastRoute.route.filters }
     }
   }
   return false
