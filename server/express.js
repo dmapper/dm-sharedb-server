@@ -144,23 +144,18 @@ module.exports = (backend, appRoutes, error, options, cb) => {
       if (matched.redirect) return res.redirect(302, matched.redirect)
       req.appName = matched.appName
       const model = req.model
-      const filters = matched.filters
+      let filters = matched.filters
       if (!filters) return next()
-      let needToBreak
-      for (const filter of filters) {
-        filter(
-          model,
-          err => {
-            needToBreak = true
-            next(err)
-          },
-          url => {
-            needToBreak = true
-            res.redirect(url)
-          }
-        )
-        if (needToBreak) break
+      filters = filters.slice()
+      const useFilter = (err) => {
+        if (err) return next(err)
+        const filter = filters.shift()
+        if (typeof filter === 'function') {
+          return filter(model, useFilter, res.redirect.bind(res))
+        }
+        next()
       }
+      useFilter()
     }, (req, res, next) => {
       // If client route found, render the client-side app
       const { appName, model } = req
