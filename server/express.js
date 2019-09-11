@@ -141,6 +141,7 @@ module.exports = (backend, appRoutes, error, options, cb) => {
 
     expressApp.use((req, res, next) => {
       let matched
+      // If no client-side routes provided, always render the page
       if (Object.keys(appRoutes).length === 0) {
         matched = { appName: DEFAULT_APP_NAME }
       } else {
