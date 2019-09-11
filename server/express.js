@@ -23,6 +23,7 @@ const DEFAULT_BODY_PARSER_OPTIONS = {
     extended: true
   }
 }
+const DEFAULT_APP_NAME = 'main'
 function getDefaultSessionUpdateInterval (sessionMaxAge) {
   // maxAge is in ms. Return in s. So it's 1/10nth of maxAge.
   return Math.floor(sessionMaxAge / 1000 / 10)
@@ -139,7 +140,12 @@ module.exports = (backend, appRoutes, error, options, cb) => {
     let getHead = _memoize(options.getHead || (() => ''))
 
     expressApp.use((req, res, next) => {
-      const matched = matchAppRoutes(req.url, appRoutes)
+      let matched
+      if (Object.keys(appRoutes).length === 0) {
+        matched = { appName: DEFAULT_APP_NAME }
+      } else {
+        matched = matchAppRoutes(req.url, appRoutes)
+      }
       if (!matched) return next(404)
       if (matched.redirect) return res.redirect(302, matched.redirect)
       req.appName = matched.appName
